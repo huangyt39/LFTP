@@ -24,24 +24,27 @@ data = f.read()
 size = len(data)
 packagenum = size//1000 + 1
 
-windowSize = 10
+windowSize = 50
 windowStart = 0
+loseNum = 0
 windowEnd = windowStart + windowSize
 ackFlag = np.array([0]*windowSize)
 
 udpCliSock.sendto(str(packagenum).encode(), DISADDR)
 
-while windowStart <= packagenum:
-    if ackFlag.all():
-        break
+while windowStart <= packagenum - 1:
+    if windowEnd > packagenum - 1:
+        windowSize = packagenum - windowStart + 1
     for index in range(windowSize):
+        if ackFlag.sum() == windowSize:
+            break
         if ackFlag[index] == 0:
             subdata = b''
             Seq = str(windowStart+index)
             while len(Seq) < 8:
                 Seq = '0' + Seq
             Seq = Seq.encode()
-            if ((windowStart+index) + 1)*1000 >= size - 1:
+            if windowStart+index > packagenum - 1:
                 subdata = Seq + data[(windowStart+index)*1000:]
             else:
                 subdata = Seq + data[(windowStart+index)*1000:((windowStart+index) + 1)*1000]
@@ -52,14 +55,15 @@ while windowStart <= packagenum:
         try:
             ack, addr = udpCliSock.recvfrom(BUFSIZ)
         except BaseException as error:
-            print('error in', windowStart + index)
+            print('error in package no.', windowStart + index)
+            loseNum += 1
         else:
             ackFlag[int(ack[3:])-windowStart] = 1
-    if ackFlag.all():
+    if ackFlag.sum() == windowSize:
         windowStart += windowSize
         windowEnd += windowSize
         ackFlag = np.array([0]*windowSize)
-    continue
+        loseNum = 0
 
 udpCliSock.sendto(b'EOF', DISADDR)
 

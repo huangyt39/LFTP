@@ -18,7 +18,7 @@ print('bind udp on 21567')
 data = b''
 result = b''
 
-windowSize = 10
+windowSize = 50
 windowStart = 0
 windowEnd = windowStart + windowSize
 
@@ -27,9 +27,13 @@ packagenum = int(packagenum.decode())
 ackFlag = np.zeros(windowSize)
 tmpData = np.array([b'']*windowSize)
 
-while windowStart <= packagenum:
+while windowStart <= packagenum - 1:
+    if windowEnd > packagenum - 1:
+        windowSize = packagenum - windowStart + 1
+    print(windowStart , packagenum, windowSize)
+    print(ackFlag)
     for index in range(windowSize):
-        if ackFlag.all():
+        if ackFlag.sum() == windowSize:
             break
         data, addr = udpSerSock.recvfrom(BUFSIZ)
         if data == b'EOF':
@@ -43,7 +47,7 @@ while windowStart <= packagenum:
             else:
                 tmpData[index] = data[8:]
             print((data[:8]).decode(), packagenum)
-    if ackFlag.all():
+    if ackFlag.sum() == windowSize:
         # add package into data
         for i in range(windowSize):
             if tmpData[i] != b'':
@@ -53,7 +57,6 @@ while windowStart <= packagenum:
         windowEnd += windowSize
         ackFlag = np.zeros(windowSize)
         tmpData = np.array([b'']*windowSize)
-    continue
 
 try:
     f = open('D:/gitRep/LTFP/get.mp4', 'wb')
