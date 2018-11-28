@@ -6,18 +6,28 @@ import uu
 import pdb
 import numpy as np
 
-HOST = '127.0.0.1'
+# 设置地址 端口号 等待时间
+HOST = '47.107.126.23'
 PORT = 21567
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
-DISADDR = (HOST, 21566)
+DISADDR = (HOST, 21567)
 
+# 设置Socket
 udpSerSock = socket(AF_INET, SOCK_DGRAM)
-udpSerSock.bind(ADDR)
+# udpSerSock.bind(ADDR)
+
+try:
+    udpSerSock.connect((HOST,PORT))
+except Exception as e:
+    print('server not find or not open')
+    sys.exit()
+
 print('bind udp on 21567')
 data = b''
 result = b''
 
+# 设置窗口大小 
 windowSize = 50
 windowStart = 0
 windowEnd = windowStart + windowSize
@@ -36,6 +46,7 @@ while windowStart <= packagenum - 1:
         if ackFlag.sum() == windowSize:
             break
         data, addr = udpSerSock.recvfrom(BUFSIZ)
+        #若收到EOF，传输结束
         if data == b'EOF':
             break
         Ack = b'ACK' + data[:8]
@@ -59,7 +70,7 @@ while windowStart <= packagenum - 1:
         tmpData = np.array([b'']*windowSize)
 
 try:
-    f = open('D:/gitRep/LTFP/get.mp4', 'wb')
+    f = open('./get.mp4', 'wb')
     f.write(result)
 except:
     print("error")
