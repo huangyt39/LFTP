@@ -9,7 +9,7 @@ import sys
 
 # 设置地址 端口号 等待时间
 HOST = ''
-PORT = 2000
+PORT = 21567
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
 # 设置Socket
