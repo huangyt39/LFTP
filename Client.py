@@ -8,7 +8,7 @@ import numpy as np
 import sys
 
 # 设置地址 端口号 等待时间
-HOST = '127.0.0.1'
+HOST = ''
 PORT = 2000
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
@@ -18,7 +18,7 @@ udpCliSock.bind(ADDR)
 
 # sendSocked
 waitTime = 0.1
-DST = '119.23.185.176'
+DST = '192.168.199.109'
 DSTADDR = (DST, PORT)
 sendSock = socket(AF_INET, SOCK_DGRAM)
 
@@ -34,13 +34,14 @@ packagenum = size//1000 + 1
 windowSize = 50
 windowStart = 0
 loseNum = 0
+losecount = 0
 windowEnd = windowStart + windowSize
 ackFlag = np.array([0]*windowSize) #用于判断窗口中第包是否被确认
 
 sendSock.sendto(str(packagenum).encode(), DSTADDR)
 print('send packet num success')
 
-sendSock.settimeout(waitTime) #设置等待时间
+udpCliSock.settimeout(waitTime) #设置等待时间
 
 #移动窗口
 while windowStart <= packagenum - 1:
@@ -73,6 +74,7 @@ while windowStart <= packagenum - 1:
         except BaseException as error:
             print('error in package no.', windowStart + index)
             loseNum += 1
+            losecount += 1
         else:
             ackFlag[int(ack[3:])-windowStart] = 1
 
@@ -85,4 +87,5 @@ while windowStart <= packagenum - 1:
 
 #传输EOF 传输结束
 sendSock.sendto(b'EOF', DSTADDR)
+print("losecount: ", losecount)
 udpCliSock.close()

@@ -7,7 +7,7 @@ import pdb
 import numpy as np
 
 # 设置地址 端口号 等待时间
-HOST = '127.0.0.1'
+HOST = ''
 PORT = 2000
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
