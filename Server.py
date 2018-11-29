@@ -7,33 +7,32 @@ import pdb
 import numpy as np
 
 # 设置地址 端口号 等待时间
-HOST = '47.107.126.23'
-PORT = 21567
+HOST = '127.0.0.1'
+PORT = 2000
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
-DISADDR = (HOST, 21567)
-
 # 设置Socket
 udpSerSock = socket(AF_INET, SOCK_DGRAM)
-# udpSerSock.bind(ADDR)
+udpSerSock.bind(ADDR)
 
-try:
-    udpSerSock.connect((HOST,PORT))
-except Exception as e:
-    print('server not find or not open')
-    sys.exit()
+# sendSocked
+DST = '47.107.126.23'
+DSTADDR = (DST, PORT)
+sendSock = socket(AF_INET, SOCK_DGRAM)
 
-print('bind udp on 21567')
+print('bind udp on 2000')
 data = b''
 result = b''
+
+packagenum, addr = udpSerSock.recvfrom(BUFSIZ)
+packagenum = int(packagenum.decode())
+print('recive packet num success')
+
 
 # 设置窗口大小 
 windowSize = 50
 windowStart = 0
 windowEnd = windowStart + windowSize
-
-packagenum, addr = udpSerSock.recvfrom(BUFSIZ)
-packagenum = int(packagenum.decode())
 ackFlag = np.zeros(windowSize)
 tmpData = np.array([b'']*windowSize)
 
@@ -50,7 +49,7 @@ while windowStart <= packagenum - 1:
         if data == b'EOF':
             break
         Ack = b'ACK' + data[:8]
-        udpSerSock.sendto(Ack ,DISADDR)
+        sendSock.sendto(Ack ,DSTADDR)
         if ackFlag[index] == 0:
             ackFlag[index] = 1
             if index == 0 or ackFlag[:index-1].all():

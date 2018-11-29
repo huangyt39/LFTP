@@ -8,23 +8,19 @@ import numpy as np
 import sys
 
 # 设置地址 端口号 等待时间
-HOST = '119.23.185.176'
-PORT = 21567
+HOST = '127.0.0.1'
+PORT = 2000
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
-DISADDR = (HOST, 21567)
-waitTime = 0.1
-
 # 设置Socket
 udpCliSock = socket(AF_INET, SOCK_DGRAM)
-udpCliSock.settimeout(waitTime) #设置等待时间
-# udpCliSock.bind(ADDR)
+udpCliSock.bind(ADDR)
 
-try:
-    udpCliSock.connect((HOST,PORT))
-except Exception as e:
-    print('server not find or not open')
-    sys.exit()
+# sendSocked
+waitTime = 0.1
+DST = '119.23.185.176'
+DSTADDR = (DST, PORT)
+sendSock = socket(AF_INET, SOCK_DGRAM)
 
 # 读入要传输的文件
 f = open('./test.mp4', 'rb')
@@ -41,7 +37,10 @@ loseNum = 0
 windowEnd = windowStart + windowSize
 ackFlag = np.array([0]*windowSize) #用于判断窗口中第包是否被确认
 
-udpCliSock.sendto(str(packagenum).encode(), DISADDR)
+sendSock.sendto(str(packagenum).encode(), DSTADDR)
+print('send packet num success')
+
+sendSock.settimeout(waitTime) #设置等待时间
 
 #移动窗口
 while windowStart <= packagenum - 1:
@@ -64,7 +63,7 @@ while windowStart <= packagenum - 1:
                 subdata = Seq + data[(windowStart+index)*1000:]
             else:
                 subdata = Seq + data[(windowStart+index)*1000:((windowStart+index) + 1)*1000]
-            udpCliSock.sendto(subdata, DISADDR)
+            sendSock.sendto(subdata, DSTADDR)
             print(Seq.decode(), packagenum - 1)
 
     # 接受Ack 若接收不到打印错误信息
@@ -85,6 +84,5 @@ while windowStart <= packagenum - 1:
         loseNum = 0
 
 #传输EOF 传输结束
-udpCliSock.sendto(b'EOF', DISADDR)
-
+sendSock.sendto(b'EOF', DSTADDR)
 udpCliSock.close()
