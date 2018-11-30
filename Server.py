@@ -7,7 +7,8 @@ import pdb
 import numpy as np
 
 # 设置地址 端口号 等待时间
-HOST = ''
+HOST = '172.18.34.230'
+# HOST = ''
 PORT = 21567
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
@@ -16,7 +17,7 @@ udpSerSock = socket(AF_INET, SOCK_DGRAM)
 udpSerSock.bind(ADDR)
 
 # sendSocked
-DST = '47.107.126.23'
+# DST = '47.107.126.23'
 DST = '119.23.185.176'
 DSTADDR = (DST, PORT)
 sendSock = socket(AF_INET, SOCK_DGRAM)
