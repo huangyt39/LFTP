@@ -17,6 +17,7 @@ udpSerSock.bind(ADDR)
 
 # sendSocked
 DST = '47.107.126.23'
+DST = '119.23.185.176'
 DSTADDR = (DST, PORT)
 sendSock = socket(AF_INET, SOCK_DGRAM)
 

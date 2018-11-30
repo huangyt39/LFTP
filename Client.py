@@ -18,7 +18,8 @@ udpCliSock.bind(ADDR)
 
 # sendSocked
 waitTime = 0.1
-DST = '119.23.185.176'
+# DST = '119.23.185.176'
+DST = '47.107.126.23'
 DSTADDR = (DST, PORT)
 sendSock = socket(AF_INET, SOCK_DGRAM)
 
