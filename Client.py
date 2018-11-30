@@ -23,6 +23,9 @@ DST = '47.107.126.23'
 DSTADDR = (DST, PORT)
 sendSock = socket(AF_INET, SOCK_DGRAM)
 
+udpCliSock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+sendSock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+
 # 读入要传输的文件
 f = open('./test.mp4', 'rb')
 data = f.read()

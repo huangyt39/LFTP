@@ -7,8 +7,8 @@ import pdb
 import numpy as np
 
 # 设置地址 端口号 等待时间
-HOST = '172.18.34.230'
-# HOST = ''
+# HOST = '172.18.34.230'
+HOST = ''
 PORT = 21567
 BUFSIZ = 1024
 ADDR = (HOST, PORT)
@@ -21,6 +21,9 @@ udpSerSock.bind(ADDR)
 DST = '119.23.185.176'
 DSTADDR = (DST, PORT)
 sendSock = socket(AF_INET, SOCK_DGRAM)
+
+udpSerSock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+sendSock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
 print('bind udp on 2000')
 data = b''
