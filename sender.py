@@ -2,6 +2,7 @@
 
 import time
 import numpy as np
+from log import *
 from socket import *
 from threading import *
 
@@ -48,18 +49,18 @@ class sender(object):
     def createSender(self):
         self.__openFile(self.__filePath)
         if self.__fileEnd == True:
-            print('File path error')
+            FileLogger.err('File path error')
             return
         if self.__identity is 'server':
-            print('server prepares to send data')
+            ServerLogger.log('Server prepares to send data')
             msg = 'server prepares to send data'
         elif self.__identity is 'client':
-            print('client prepares to send data')
+            ClientLogger.log('client prepares to send data')
             msg = 'lsend' + DELIMITER + self.__filePath
         self.__udpSock.sendto(msg.encode(), self.__dstAddr)
-        print('send msg')
+        SenderLogger.log('Send initial message to Receiver')
         newRwnd, self.__dstAddr = self.__udpSock.recvfrom(MSS)
-        print('update rwnd')
+        CwndLogger.log('Cwnd update as %d' % int(newRwnd.decode()))
         self.__rwnd = int(newRwnd.decode())
         self.__initArgs()
         self.__createThread()
@@ -80,6 +81,7 @@ class sender(object):
     '''
     def __initArgs(self):
         # 初始化所有参数
+        SenderLogger.log('Initial all arguments')
         self.__sendState = True
         self.__sendSeq = []
         self.__send_base = 0
@@ -97,10 +99,14 @@ class sender(object):
     def __createThread(self):
         # 创建发送线程和接收线程
         self.__sendThread = Thread(target=self.__sendData, name="sendThread")
+        ThreadLogger.log('Create send thread')
         self.__recvThread = Thread(target=self.__recvMsg, name="recvThread")
+        ThreadLogger.log('Create receive thread')
         # 启动线程
         self.__sendThread.start()
+        ThreadLogger.log('Start send thread')
         self.__recvThread.start()
+        ThreadLogger.log('Start receive thread')
         self.__sendThread.join()
         self.__recvThread.join()
 
@@ -108,7 +114,7 @@ class sender(object):
     @msg: 每次从文件中读取一定长度数据并发送, 直到整个文件发送完成
     '''
     def __sendData(self):
-        print('sending start')
+        SenderLogger.log('Sending start')
         # 读取到文件末尾才结束循环
         while self.__fileEnd == False:
             # 更新发送窗口大小
@@ -121,7 +127,7 @@ class sender(object):
             if self.__sendSize == 0:
                 # 发送一个空报文段来让接收方更新rwnd
                 self.__udpSock.sendto(b' ', self.__dstAddr) 
-                print("get new rwnd")
+                SenderLogger.log('Request new rwnd')
                 time.sleep(0.1)
             # 当发送窗口不为0且数据未传输完成时
             elif self.__sendState == True:
@@ -131,14 +137,16 @@ class sender(object):
                     self.__streamControl()
                     # 读取到文件末尾则退出
                     if self.__fileEnd == True:
+                        FileLogger.log('File read complete')
                         break
                 # 更新发送状态
                 self.__lock.acquire()
                 self.__sendState = False
                 self.__lock.release()
-        print('send complete')
+        SenderLogger.log('Sending complete')
         # 关闭文件
         self.__file.close()
+        FileLogger.log('File close')
 
     '''
     @msg: 执行接收Ack
@@ -151,10 +159,12 @@ class sender(object):
             self.__rwnd = int(temp[1])
             # 该特殊ack代表rwnd重新清空
             if ack == INITIAL:
+                SendStateLogger.log('Sending')
                 self.__sendState = True
                 continue
             # 该特殊ack代表文件接收完成
             elif ack == DONE:
+                SenderLogger.log('Transfer complete')
                 self.__udpSock.close()
                 self.__timer.cancel()
                 break
@@ -166,10 +176,12 @@ class sender(object):
     '''
     def __recvNewAck(self):
         # 窗口右移
+        SenderLogger.log('Receive new Ack')
         self.__lock.acquire()
         del self.__sendSeq[0]
         self.__send_base += 1
         self.__lock.release()
+        SendSeqLogger.log('SendSeq size: %d' % len(self.__sendSeq))
         self.__dupAck = 0
         # 收到正在确认的报文序号, 结束计时器, 将该序号标记为已确认
         if self.__nextseqnum == self.__send_base:
@@ -177,6 +189,7 @@ class sender(object):
             self.__timerWorking = False
         else:
             # 重启计时器
+            SenderLogger.log('Reset timeout')
             if self.__timerWorking:
                 self.__timer.cancel()
             self.__timer = Timer(1.0, self.__resend)
@@ -188,6 +201,7 @@ class sender(object):
     '''
     def __resend(self):
         # 重启计时器
+        SenderLogger.log('Reset timeout')
         if self.__timerWorking:
             self.__timer.cancel()
         self.__timer = Timer(1.0, self.__resend)
@@ -197,7 +211,7 @@ class sender(object):
         self.__lock.acquire()
         for pkt in self.__sendSeq:
             seqnum, data, end = pkt.split(DELIMITER.encode())
-            print("Resend pkt: %d" % int(seqnum.decode()))
+            SenderLogger.log('Resend packet: %d' % int(seqnum.decode()))
             self.__udpSock.sendto(pkt, self.__dstAddr)
         self.__lock.release()
 
@@ -214,16 +228,18 @@ class sender(object):
                 pkt = str(self.__nextseqnum).encode() + DELIMITER.encode() \
                     + data + DELIMITER.encode() + str(DONE).encode()
                 self.__fileEnd = True
+                FileLogger.log('Read file end')
             # 最后的一个报文要打上特殊标记
             else:
                 pkt = str(self.__nextseqnum).encode() + DELIMITER.encode() \
                     + data + DELIMITER.encode() + str(WORKING).encode()
                 self.__fileEnd = False
             # 发送报文
-            print("Send pkt: %d" % self.__nextseqnum)
+            SenderLogger.log('Send packet: %d' % self.__nextseqnum)
             self.__udpSock.sendto(pkt, self.__dstAddr)
             if self.__nextseqnum == self.__send_base:
                 # 重启计时器
+                SenderLogger.log('Reset timeout')
                 if self.__timerWorking:
                     self.__timer.cancel()
                 self.__timer = Timer(1.0, self.__resend)
@@ -232,9 +248,10 @@ class sender(object):
             # 更新滑动窗口
             self.__lock.acquire()
             self.__sendSeq.append(pkt)
+            SendSeqLogger.log('SendSeq size: %d' % len(self.__sendSeq))
             self.__nextseqnum += 1
             self.__lock.release()
-            
+
     '''
     @msg: 拥塞控制
     @param: ack     本次收到的ack
@@ -244,7 +261,7 @@ class sender(object):
         if self.__congestionState is SLOWSTART:
             # 收到正确的ack
             if ack >= self.__send_base:
-                print("recv Ack: %d" % ack)
+                SenderLogger.log('Receive Ack: %d' % ack)
                 self.__recvNewAck()
                 self.__lock.acquire()
                 self.__sendState = True
@@ -256,10 +273,12 @@ class sender(object):
                 else:
                     self.__cwnd = self.__ssthresh
                     self.__congestionState = AVOID
+                    CongestionSateLogger.log('change AVOID state')
+                CwndLogger.log('update to %d' % self.__cwnd)
                 self.__lock.release()
             # 收到冗余ack
             else:
-                print("get dup ack")
+                SenderLogger.log('Receive duplicate ack')
                 self.__dupAck = self.__dupAck + 1
                 # 超过3个冗余ack将进入快速恢复状态
                 if self.__dupAck >= 3:
@@ -272,25 +291,30 @@ class sender(object):
                     else:
                         self.__ssthresh = self.__cwnd / 2
                     self.__cwnd = 5.0
+                    CwndLogger.log('update to %d' % self.__cwnd)
+                    SSThreshLogger.log('update to %d' % self.__ssthresh)
                     # 清空冗余ack计数
                     self.__dupAck = 0
                     self.__lock.release()
                     # 进入快速恢复状态
                     self.__congestionState = FASTRECOVERY
+                    CongestionSateLogger.log('change to FASTRECOVERY state')
         # 拥塞避免状态
         elif self.__congestionState is AVOID:
             # 收到正确的ACK
             if ack >= self.__send_base:
-                print("recv Ack: %d" % ack)
+                SenderLogger.log('Receive Ack: %d' % ack)
                 self.__recvNewAck()
                 self.__lock.acquire()
                 self.__sendState = True
+                SendStateLogger.log('Sending')
                 # cwnd 每次加 1
                 self.__cwnd += 1.0 / int(self.__cwnd)
+                CwndLogger.log('update to %d' % self.__cwnd)
                 self.__lock.release()
             # 收到冗余ack
             else:
-                print("get dup ack")
+                SenderLogger.log('Receive duplicate ack')
                 self.__dupAck =  self.__dupAck + 1
                 # 超过3个冗余ack将进入快速恢复状态
                 if self.__dupAck >= 3:
@@ -303,29 +327,36 @@ class sender(object):
                     else:
                         self.__ssthresh = self.__cwnd / 2
                     self.__cwnd = 5.0
+                    CwndLogger.log('update to %d' % self.__cwnd)
+                    SSThreshLogger.log('update to %d' % self.__ssthresh)
                     # 清空冗余ack计数
                     self.__dupAck = 0
                     self.__lock.release()
                     # 进入快速恢复状态
                     self.__congestionState = FASTRECOVERY
+                    CongestionSateLogger.log('change to FASTRECOVERY state')
         # 快速恢复状态
         elif self.__congestionState is FASTRECOVERY:
             # 收到正确ack
             if ack >= self.__send_base:
-                print("recv Ack: %d" % ack)
+                SenderLogger.log('Receive Ack: %d' % ack)
                 self.__recvNewAck()
                 self.__lock.acquire()
                 # 更新cwnd为阈值大小
                 self.__cwnd = self.__ssthresh
+                CwndLogger.log('update to %d' % self.__cwnd)
                 # 进入拥塞避免状态
                 self.__congestionState = AVOID
                 self.__lock.release()
+                CongestionSateLogger.log('Change to AVOID state')
             # 收到冗余ack
             else:
                 self.__lock.acquire()
                 self.__sendState = True
                 self.__cwnd += 1
                 self.__lock.release()
+                SendStateLogger.log('Sending')
+                CwndLogger.log('update to %d' % self.__cwnd)
     
     '''
     @msg: 打开文件
@@ -335,7 +366,8 @@ class sender(object):
         try:
             self.__file = open('./' + filePath, 'rb')
         except:
-            print("Open file error")
+            FileLogger.log('File path error')
             self.__fileEnd = True
         else:
+            FileLogger.log('File open success')
             self.__fileEnd = False
