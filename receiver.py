@@ -176,7 +176,8 @@ class receiver(object):
                 # 更新已读位置
                 self.__updateLastRead(self.__lastRead + 1)
                 # 已写入文件的数据要从缓存队列中移除
-                del self.__recvSeq[0]
+                if len(self.__recvSeq) > 0:
+                    del self.__recvSeq[0]
                 ReceiverLogger.log('RecvSeq size: %d' % len(self.__recvSeq))
             # 接收完成且完成写入文件
             if self.__recvState == False:
