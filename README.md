@@ -1,3 +1,7 @@
+---
+typora-copy-images-to: pic
+---
+
 
 
 # LFTP
@@ -298,3 +302,24 @@ if __name__ == "__main__":
 
 ### 测试样例
 
+#### 机制
+
+滑动窗口
+
+![windows](.\pic\windows.png)
+
+#### 接收方
+
+写文件
+
+![writing complete](.\pic\writing complete.png)
+
+接受完成
+
+![writing complete](.\pic\writing complete.png)
+
+#### 发送方
+
+发送完成
+
+![transfer conplete](.\pic\transfer conplete.png)
