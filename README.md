@@ -56,9 +56,9 @@
 
 #### 重传机制
 
-receiver设置socket的timeout，如果超时未收到想要的报文，向发送方发送INITAL的Ack；
+receiver设置socket的timeout，如果超时未收到想要的报文，向发送方发送的Ack；
 
-sender接收到receiver发送的Ack后进行判断，若Ack为INITAL，采用回退N步的方法重传
+sender接收到receiver发送的Ack后进行判断，若Ack为冗余的，采用回退N步的方法重传
 
 关键代码：
 
@@ -103,9 +103,9 @@ def __resend(self):
     self.__lock.release()
 ```
 
-#### 滑动窗口
+#### 流控制
 
-根据窗口大小打包相应数量的数据包，即在数据的头尾分别加上序号和结束标记，同时将最后一个包打上特殊标记，发送数据包并更新滑动窗口
+根据接收方的接收窗口大小设置滑动窗口的大小，每次打包相应数量的数据包，并在数据的头尾分别加上序号和结束标记，文件的最后一个包加上特殊的文件结束标记以便接收方确认接收完成。实际发送时除了滑动窗口大小还要考虑拥塞控制窗口的大小来决定每次实际发送的数据包数量，发送的数据包存在缓存队列中，收到相应的Ack时从队列中移除。每次缓存队列中有新加入的数据包或移除数据包都要更新滑动窗口重新确认可用于发送的大小
 
 关键代码：
 
@@ -195,6 +195,8 @@ def __congestionControl(self, ack):
                 self.__lock.release()
                 # 进入快速恢复状态
                 self.__congestionState = FASTRECOVERY
+```
+```python
     # 拥塞避免状态
     elif self.__congestionState is AVOID:
         # 收到正确的ACK
@@ -226,6 +228,8 @@ def __congestionControl(self, ack):
                 self.__lock.release()
                 # 进入快速恢复状态
                 self.__congestionState = FASTRECOVERY
+```
+```python
     # 快速恢复状态
     elif self.__congestionState is FASTRECOVERY:
     	# 收到正确ack
@@ -249,11 +253,47 @@ def __congestionControl(self, ack):
 
 
 #### 多用户
-
+将发送端和接收端封装成类, 根据客户端程序运行时命令行输入的指令, 创建相应的发送类或接受类的实例, 并给特定的服务端地址和端口发送消息, 服务端收到消息后, 创建新的线程执行新实例化的发送类或接受类
 
 
 关键代码：
+```python
+# 客户端
+if __name__ == "__main__":
+    # 客户端向服务端发送数据
+    hostPort = int(input('input client port: '))    # 指定客户端的端口
+    dstAddr = (sys.argv[3], 21567)
 
+    if sys.argv[2] == 'lget':
+        receiver(('', hostPort), dstAddr, sys.argv[4], 'client').createReceiver()
+    elif sys.argv[2] == 'lsend':
+        sender(('', hostPort), dstAddr, sys.argv[4], 'client').createSender()
+```
+```python
+# 服务端
+def send(hostAddr, dstAddr, filePath):
+    sender(hostAddr, dstAddr, filePath, 'server').createSender()
+
+def receive(hostAddr, dstAddr, filePath):
+    receiver(hostAddr, dstAddr, filePath, 'server').createReceiver()
+
+if __name__ == "__main__":
+    # 服务端监听请求
+    hostPort = 21567
+    udpSock = socket(AF_INET, SOCK_DGRAM) # 绑定socket
+    udpSock.bind(('', hostPort))
+    print('Bind udp on', hostPort)
+
+    # 服务端从客户端接收数据
+    while 1:
+        hostPort += 10
+        data, dstAddr = udpSock.recvfrom(MSS)
+        temp = data.decode().split(DELIMITER)
+        if temp[0] == 'lget':
+            Thread(target=send, args=(('', hostPort), dstAddr, temp[1])).start()
+        elif temp[0] == 'lsend':
+            Thread(target=receive, args=(('', hostPort), dstAddr, temp[1])).start()
+```
 
 
 ### 测试样例
