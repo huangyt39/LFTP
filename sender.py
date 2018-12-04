@@ -20,14 +20,13 @@ class sender(object):
     '''
     @msg: 初始化发送的目的地址和端口, 读取要发送的文件
     @param:
-        dstIP       接收方的IP地址
-        dstPort     接收方接收端口号
+        dstAddr     接收方地址
         filePath    将要发送的文件所在路径
         identity     类调用者的身份
     '''
-    def __init__(self, dstIP, dstPort, filePath, identity):
+    def __init__(self, dstAddr, filePath, identity):
         # 接收方地址
-        self.__dstAddr = (dstIP, dstPort)
+        self.__dstAddr = dstAddr
         # 采用udp
         self.__udpSock = socket(AF_INET, SOCK_DGRAM)
         # 互斥锁
@@ -43,23 +42,19 @@ class sender(object):
     @msg: 开始一个发送任务, 向接收方发送特定报文获取接收方的接收窗口大小
     '''
     def createSender(self):
-        if self.__identity is 'server':
-            print('sercer send file to client')
-            data, self.__dstAddr = self.__udpSock.recvfrom(MSS)
-            temp = data.decode().split(DELIMITER)
-            ack = int(temp[0])
-            if ack == CONNECT:
-                self.__filePath = str(temp[1])
-                self.__udpSock.sendto(CONNECT.encode(), self.__dstAddr)
-        elif self.__identity is 'client':
-            print('client send file to server')
         self.__openFile(self.__filePath)
-        msg = str(CONNECT) + DELIMITER + str('begin to send')
+        if self.__fileEnd == True:
+            print('File path error')
+            return
+        if self.__identity is 'server':
+            print('server prepares to send data')
+            msg = 'server prepares to send data'
+        elif self.__identity is 'client':
+            print('client prepares to send data')
+            msg = 'lsend' + DELIMITER + self.__filePath
         self.__udpSock.sendto(msg.encode(), self.__dstAddr)
-        print("send begin msg")
-        newRwnd = self.__udpSock.recv(MSS)
+        newRwnd, self.__dstAddr = self.__udpSock.recvfrom(MSS)
         self.__rwnd = int(newRwnd.decode())
-        print("recv new rwnd")
         self.__initArgs()
         self.__createThread()
 
@@ -331,8 +326,9 @@ class sender(object):
     '''
     def __openFile(self, filePath):
         try:
-            self.__file = open(filePath, 'rb')
+            self.__file = open('./' + filePath, 'rb')
         except:
             print("Open file error")
+            self.__fileEnd = True
         else:
             self.__fileEnd = False

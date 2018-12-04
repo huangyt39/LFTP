@@ -20,25 +20,23 @@ class receiver(object):
     '''
     @msg: 初始化发送的目的地址和端口, 读取要发送的文件
     @param:
-        hostIP       本机的IP地址
-        hostPort     本机接收端口号
+        hostAddr     本机地址
+        dstAddr      发送方地址
         filePath     文件存储的路径
-        dstIP        当接受者为客户端时, 该项为服务器地址; 当接受者为服务器时，该项为空
-        dstPort      当接受者为客户端时, 该项为服务器端口; 当接受者为服务器时，该项为空
         identity     类调用者的身份
     '''
-    def __init__(self, hostIP, hostPort, dstIP, dstPort, filePath, identity):
+    def __init__(self, hostAddr, dstAddr, filePath, identity):
         # 本机地址
-        self.__hostAddr = (hostIP, hostPort)
+        self.__hostAddr = hostAddr
         # 采用udp
         self.__udpSock = socket(AF_INET, SOCK_DGRAM)
         # 绑定本机地址
         self.__udpSock.bind(self.__hostAddr)
-        print("Bind on %d" % hostPort)
         # 发送方地址
-        self.__dstAddr = (dstIP, dstPort)
+        self.__dstAddr = dstAddr
         # 打开文件存储路径
         self.__filePath = filePath
+        self.__
         # 互斥锁
         self.__lock = Lock()
         # 默认接收缓存大小设置为5
@@ -51,21 +49,20 @@ class receiver(object):
     '''
     def createReceiver(self):
         self.__openFile(self.__filePath)
+        if self.__fileExist == False:
+            print('File path error')
+            return
         if self.__identity is 'client':
-            print('client download file form server')
-            msg = str(CONNECT) + DELIMITER + str(self.__filePath)
-            self.__udpSock.sendto(msg.encode(), self.__dstAddr)
-            data = self.__udpSock.recv(MSS)  # 收到报文
-            temp = data.decode().split(DELIMITER)
-            ack = int(temp[0])
-            if ack == CONNECT:
+            msg = 'lget' + DELIMITER + self.__filePath
+            self.__udpSock.sendto(msg, self.__dstAddr)
+            data, self.__dstAddr = self.__udpSock.recvfrom(MSS)
+            if cmp(data.decode(), 'server prepares to send data') == 0:
+                self.__udpSock.sendto(b'%d' % self.__recvBuffer, self.__dstAddr)
+                print('client prepares to receive data')
         elif self.__identity is 'server':
-            print('server receive file from client')
+            self.__udpSock.sendto(b'%d' % self.__recvBuffer, self.__dstAddr)
+            print('server prepares to receive data')
         self.__updateReceiving(True)
-        data, self.__dstAddr = self.__udpSock.recvfrom(MSS) # 收到空报文
-        print("recv begin msg")
-        self.__udpSock.sendto(b'%d' % self.__recvBuffer, self.__dstAddr)
-        print("send recvBuffer")
         self.__intiArgs() #  初始化所有参数
         self.__createThread() # 创建接收线程和写文件线程
 
@@ -179,15 +176,6 @@ class receiver(object):
                 break
         self.__file.close()
 
-    '''
-    @msg: 打开文件
-    @param: filePath 文件路径
-    '''
-    def __openFile(self, filePath):
-        try:
-            self.__file = open(filePath, 'wb')
-        except:
-            print("Open file error")
         
     '''
     @msg: 更新接收窗口大小
@@ -233,3 +221,16 @@ class receiver(object):
         self.__lock.acquire()
         self.__recvState = newRecvState
         self.__lock.release()
+
+    '''
+    @msg: 打开文件
+    @param: filePath 文件路径
+    '''
+    def __openFile(self, filePath):
+        try:
+            self.__file = open('./' + filePath, 'wb')
+        except:
+            print("Open file error")
+            self.__fileExist = False
+        else:
+            self.__fileExist = True
