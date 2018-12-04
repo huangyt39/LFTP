@@ -9,11 +9,10 @@ from receiver import *
 
 if __name__ == "__main__":
     # 客户端向服务端发送数据
-    hostPort = 21567 # 指定客户端端口
-    hostAddr = ('', hostPort)
-    dstAddr = (sys.argv[3], hostPort)
+    hostPort = int(input('input client port: '))    # 指定客户端的端口
+    dstAddr = (sys.argv[3], 21567)
 
     if sys.argv[2] == 'lget':
-        receiver(hostAddr, dstAddr, sys.argv[4], 'client').createReceiver()
+        receiver(('', hostPort), dstAddr, sys.argv[4], 'client').createReceiver()
     elif sys.argv[2] == 'lsend':
-        sender(dstAddr, sys.argv[4], 'client').createSender()
+        sender(('', hostPort), dstAddr, sys.argv[4], 'client').createSender()

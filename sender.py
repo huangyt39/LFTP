@@ -20,15 +20,19 @@ class sender(object):
     '''
     @msg: 初始化发送的目的地址和端口, 读取要发送的文件
     @param:
+        hostAddr     本机地址
         dstAddr     接收方地址
         filePath    将要发送的文件所在路径
         identity     类调用者的身份
     '''
-    def __init__(self, dstAddr, filePath, identity):
+    def __init__(self, hostAddr, dstAddr, filePath, identity):
+        # 本机地址
+        self.__hostAddr = hostAddr
         # 接收方地址
         self.__dstAddr = dstAddr
         # 采用udp
         self.__udpSock = socket(AF_INET, SOCK_DGRAM)
+        self.__udpSock.bind(self.__hostAddr)
         # 互斥锁
         self.__lock = Lock()
         # 发送窗口大小默认为5
@@ -53,7 +57,9 @@ class sender(object):
             print('client prepares to send data')
             msg = 'lsend' + DELIMITER + self.__filePath
         self.__udpSock.sendto(msg.encode(), self.__dstAddr)
+        print('send msg')
         newRwnd, self.__dstAddr = self.__udpSock.recvfrom(MSS)
+        print('update rwnd')
         self.__rwnd = int(newRwnd.decode())
         self.__initArgs()
         self.__createThread()
@@ -102,6 +108,7 @@ class sender(object):
     @msg: 每次从文件中读取一定长度数据并发送, 直到整个文件发送完成
     '''
     def __sendData(self):
+        print('sending start')
         # 读取到文件末尾才结束循环
         while self.__fileEnd == False:
             # 更新发送窗口大小

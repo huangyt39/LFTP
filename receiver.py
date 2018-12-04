@@ -28,19 +28,17 @@ class receiver(object):
     def __init__(self, hostAddr, dstAddr, filePath, identity):
         # 本机地址
         self.__hostAddr = hostAddr
-        # 采用udp
-        self.__udpSock = socket(AF_INET, SOCK_DGRAM)
-        # 绑定本机地址
-        self.__udpSock.bind(self.__hostAddr)
         # 发送方地址
         self.__dstAddr = dstAddr
-        # 打开文件存储路径
-        self.__filePath = filePath
-        self.__
+        # 采用udp
+        self.__udpSock = socket(AF_INET, SOCK_DGRAM)
+        self.__udpSock.bind(self.__hostAddr)
         # 互斥锁
         self.__lock = Lock()
         # 默认接收缓存大小设置为5
         self.__recvBuffer = 5
+        # 打开文件存储路径
+        self.__filePath = filePath
         # 调用者身份
         self.__identity = identity
 
@@ -54,9 +52,11 @@ class receiver(object):
             return
         if self.__identity is 'client':
             msg = 'lget' + DELIMITER + self.__filePath
-            self.__udpSock.sendto(msg, self.__dstAddr)
+            self.__udpSock.sendto(msg.encode(), self.__dstAddr)
+            print('waiting for reply')
             data, self.__dstAddr = self.__udpSock.recvfrom(MSS)
-            if cmp(data.decode(), 'server prepares to send data') == 0:
+            print('get server address')
+            if data.decode() == 'server prepares to send data':
                 self.__udpSock.sendto(b'%d' % self.__recvBuffer, self.__dstAddr)
                 print('client prepares to receive data')
         elif self.__identity is 'server':
@@ -107,7 +107,7 @@ class receiver(object):
                 # 超时未收到想要的报文, 向发送方发送Ack
                 msg = str(self.__ack) + DELIMITER + str(self.__rwnd)
                 self.__sendAck(msg.encode(), self.__dstAddr)
-                print('Ack: %d' % seqNum)
+                print('Ack: %d' % self.__ack)
             else:
                 # 收到报文, 获取报文中的数据和序号，文件尾标识等
                 temp = data.split(DELIMITER.encode())
@@ -228,7 +228,7 @@ class receiver(object):
     '''
     def __openFile(self, filePath):
         try:
-            self.__file = open('./' + filePath, 'wb')
+            self.__file = open('./' + str(filePath), 'wb')
         except:
             print("Open file error")
             self.__fileExist = False
