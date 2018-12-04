@@ -1,9 +1,3 @@
----
-typora-copy-images-to: pic
----
-
-
-
 # LFTP
 
 ### 简介
@@ -38,7 +32,7 @@ typora-copy-images-to: pic
 
 ### 环境
 
-- windows
+- 阿里云Ubuntu  16.04 64位 *2
 
 - python3.6.6
 
@@ -304,22 +298,44 @@ if __name__ == "__main__":
 
 #### 机制
 
+重传
+
+![transfer conplete](https://github.com/huangyt39/LFTP/blob/master/pic/resend.png?raw=true)
+
 滑动窗口
 
-![windows](.\pic\windows.png)
+![windows](https://github.com/huangyt39/LFTP/blob/master/pic/windows.png?raw=true)
+
+拥塞控制
+
+![transfer conplete](https://github.com/huangyt39/LFTP/blob/master/pic/congestion.png?raw=true)
+
+多用户
+
+![transfer conplete](https://github.com/huangyt39/LFTP/blob/master/pic/multiuser.png?raw=true)
 
 #### 接收方
 
 写文件
 
-![writing complete](.\pic\writing complete.png)
+![writing complete](https://github.com/huangyt39/LFTP/blob/master/pic/reicver%20writing.png?raw=true)
 
 接受完成
 
-![writing complete](.\pic\writing complete.png)
+![writing complete](https://github.com/huangyt39/LFTP/blob/master/pic/writing%20complete.png?raw=true)
 
 #### 发送方
 
 发送完成
 
-![transfer conplete](.\pic\transfer conplete.png)
+![transfer conplete](https://github.com/huangyt39/LFTP/blob/master/pic/transfer%20complete.png?raw=true)
+
+#### 传输结果
+
+开始传输
+
+![transfer conplete](https://github.com/huangyt39/LFTP/blob/master/pic/begin.png?raw=true)
+
+传输完成
+
+![transfer conplete](https://github.com/huangyt39/LFTP/blob/master/pic/result.png?raw=true)
