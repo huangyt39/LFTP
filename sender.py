@@ -178,7 +178,8 @@ class sender(object):
         # 窗口右移
         SenderLogger.log('Receive new Ack')
         self.__lock.acquire()
-        del self.__sendSeq[0]
+        if len(self.__sendSeq) > 0:
+            del self.__sendSeq[0]
         self.__send_base += 1
         self.__lock.release()
         SendSeqLogger.log('SendSeq size: %d' % len(self.__sendSeq))
